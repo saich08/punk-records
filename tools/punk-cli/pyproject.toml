@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "punk-records"
+version = "0.1.0"
+description = "The punk command-line interface."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["click>=8.1,<9"]
+
+[project.optional-dependencies]
+build = ["pyinstaller>=6,<7"]
+dev = ["yapf>=0.43,<0.44"]
+
+[project.scripts]
+punk = "punk.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.yapf]
+based_on_style = "google"
+split_before_logical_operator = true
