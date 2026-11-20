@@ -11,8 +11,9 @@ script `punk`, Python `>=3.10`). Run every command below from that directory.
 ## Choose an install method
 
 - **Standalone binary** (default): builds a single-file executable with
-  PyInstaller and copies it to `~/.local/bin` (or a chosen directory). Use this
-  when the user wants `punk` available globally without a Python environment.
+  PyInstaller and installs it to `/usr/local/bin`, so every user, including
+  root and `sudo`, can run it. Use this when the user wants `punk` available
+  globally without a Python environment.
 - **Python package**: installs `punk` into a virtual environment. Use this for
   development (`-e`) or when the user explicitly asks for a pip install.
 
@@ -30,19 +31,30 @@ Ask the user only if the intent is unclear; otherwise use the standalone binary.
 
    On Windows use `.venv\Scripts\python.exe` instead of `.venv/bin/python`.
 
-2. Build and install the binary:
+2. Build the binary as the current user (never with `sudo`, which would leave
+   root-owned files in `.venv/`, `build/`, and `dist/`):
 
    ```sh
-   .venv/bin/python scripts/build.py --install
+   .venv/bin/python scripts/build.py
    ```
 
-   Add `--install-dir <dir>` to install somewhere other than `~/.local/bin`.
    The binary is built at `dist/punk` (`dist/punk.exe` on Windows), and the
-   script exits non-zero if the build or copy fails.
+   script exits non-zero if the build fails.
 
-3. If the install directory is not on `PATH`, tell the user how to add it
-   (for example `export PATH="$HOME/.local/bin:$PATH"` in their shell profile)
-   instead of editing shell profiles without permission.
+3. Install it system-wide, using `sudo -A` so the password is requested
+   through the secure prompt:
+
+   ```sh
+   sudo -A install -m 755 dist/punk /usr/local/bin/punk
+   ```
+
+   `/usr/local/bin` is on the default `PATH` and on sudo's `secure_path`, so
+   no shell profile changes are needed. If the user explicitly wants a
+   per-user install without sudo, use
+   `.venv/bin/python scripts/build.py --install` instead, which copies to
+   `~/.local/bin` (or `--install-dir <dir>`).
+
+4. On Windows, skip step 3 and use `scripts/build.py --install`.
 
 ## Python package
 
@@ -60,16 +72,22 @@ then available as `.venv/bin/punk`, or as `punk` after activating the venv.
 Confirm the installed command runs and reports the expected version:
 
 ```sh
+command -v punk
 punk --version
+sudo -A punk --version
 ```
 
-Use the full path (for example `~/.local/bin/punk` or `.venv/bin/punk`) if its
-directory is not on `PATH`. Running `punk` without the `config` or `init`
+Confirm `command -v punk` prints `/usr/local/bin/punk`. If it prints another
+path, such as a stale `~/.local/bin/punk` that shadows it, tell the user
+instead of deleting that file. Skip the `sudo` check for venv installs. Running `punk` without the `config` or `init`
 subcommands creates a default configuration file on first start, so prefer
 `--version` for verification.
 
 ## Rules
 
 - Never install into the system Python or use `sudo pip`; always use a venv.
+- Use `sudo` only for the final `install` into `/usr/local/bin`.
+- Running `punk` as root uses root's own config (`/root/.config/punk/`), not
+  the invoking user's; mention this when the user plans to run it with sudo.
 - Do not commit `.venv/`, `build/`, or `dist/` output.
 - Report the installed path and the `punk --version` output to the user.
